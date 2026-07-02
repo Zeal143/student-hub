@@ -2,7 +2,7 @@
  
 A web application that helps international students living in Ireland manage two everyday challenges of student life in one place: **tracking personal expenses** and **keeping up with household bin collection schedules**.
  
-Students can record and visualise their spending, set monthly budgets and savings goals, and — using their Eircode and chosen waste-collection provider — see their upcoming bin collection dates with colour-coded bin types and receive an email reminder the evening before each collection.
+Students can record and visualise their spending, set monthly budgets and savings goals, and using their Eircode and chosen waste-collection provider and see their upcoming bin collection dates and receive an email reminder the evening before each collection.
 
 ---
  
