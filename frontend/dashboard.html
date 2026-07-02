@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard - Student Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="navbar"></div>
+
+<div class="container pb-5">
+  <h4 class="mb-4">Welcome back<span id="welcomeName"></span> 👋</h4>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card p-3">
+        <div class="text-muted small">Spent this month</div>
+        <div class="fs-3 fw-bold">€<span id="totalSpent">0.00</span></div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3">
+        <div class="text-muted small">Active budgets</div>
+        <div class="fs-3 fw-bold" id="budgetCount">0</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3">
+        <div class="text-muted small">Next bin collection</div>
+        <div class="fs-6 fw-bold" id="nextBin">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h6>Recent Expenses</h6>
+        <ul class="list-group list-group-flush" id="recentExpenses"></ul>
+        <a href="expenses.html" class="btn btn-sm btn-outline-primary mt-3">Add an expense →</a>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card p-3 mb-3">
+        <h6>Budgets</h6>
+        <div id="budgetList"><p class="text-muted small mb-0">No budgets set yet.</p></div>
+      </div>
+      <div class="card p-3">
+        <h6>Upcoming Bin Collections</h6>
+        <div id="binList"><p class="text-muted small mb-0">Set your Eircode to see your schedule.</p></div>
+        <a href="bins.html" class="btn btn-sm btn-outline-primary mt-2">Manage bin schedule →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/navbar.js"></script>
+<script>
+requireAuthOrRedirect();
+renderNavbar("dashboard.html");
+
+const BIN_COLOURS = { general: "#4a4a4a", recycling: "#2e7d32", organic: "#8d6e63" };
+
+async function loadDashboard() {
+  try {
+    const data = await apiFetch("/dashboard");
+    document.getElementById("welcomeName").textContent = `, ${data.user.name}`;
+    document.getElementById("totalSpent").textContent = data.total_spent_this_month.toFixed(2);
+    document.getElementById("budgetCount").textContent = data.budgets.length;
+
+    const recentList = document.getElementById("recentExpenses");
+    recentList.innerHTML = data.recent_expenses.length
+      ? data.recent_expenses.map(e => `
+          <li class="list-group-item d-flex justify-content-between">
+            <span>${e.category_name} ${e.description ? "- " + e.description : ""}</span>
+            <span class="fw-bold">€${e.amount.toFixed(2)}</span>
+          </li>`).join("")
+      : `<li class="list-group-item text-muted small">No expenses logged yet. <a href="expenses.html">Add your first one</a>.</li>`;
+
+    const budgetDiv = document.getElementById("budgetList");
+    if (data.budgets.length) {
+      budgetDiv.innerHTML = data.budgets.map(b => `
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small">
+            <span>${b.category_name}</span>
+            <span>€${b.spent.toFixed(2)} / €${b.monthly_limit.toFixed(2)}</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar ${b.over_budget ? "bg-danger" : "bg-success"}"
+                 style="width:${Math.min(100, (b.spent / b.monthly_limit) * 100)}%"></div>
+          </div>
+        </div>`).join("");
+    }
+
+    const binDiv = document.getElementById("binList");
+    if (data.upcoming_bin_collections.length) {
+      binDiv.innerHTML = data.upcoming_bin_collections.map(b => `
+        <div class="mb-1">
+          <span class="bin-dot" style="background:${b.colour}"></span>
+          ${b.bin_type} bin - ${b.collection_date}
+        </div>`).join("");
+      document.getElementById("nextBin").textContent =
+        `${data.upcoming_bin_collections[0].bin_type} - ${data.upcoming_bin_collections[0].collection_date}`;
+    }
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

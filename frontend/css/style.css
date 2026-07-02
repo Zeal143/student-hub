@@ -1,0 +1,30 @@
+body {
+  background-color: #f5f7fa;
+}
+
+.navbar-brand {
+  font-weight: 600;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+
+.bin-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.progress {
+  height: 10px;
+}
+
+.auth-card {
+  max-width: 420px;
+  margin: 80px auto;
+}
