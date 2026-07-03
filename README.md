@@ -13,5 +13,5 @@ Students can record and visualise their spending, set monthly budgets and saving
 - **Budget alerts & savings goals** — notifications as spending approaches or exceeds a budget, and progress tracking towards savings targets.
 - **Bin Schedule Tracker** — enter an Eircode and select a provider (e.g. Greyhound, Panda, Thorntons) to see upcoming collections, with each bin type (general waste, recycling, organic) colour-coded.
 - **Email reminders** — a scheduled background task sends a reminder the evening before a collection via Gmail SMTP.
-- **Unified dashboard** — a single combined view of recent spending, budget status, savings progress and upcoming bin collections.
+- **dashboard** — a single combined view of recent spending, budget status, savings progress and upcoming bin collections.
 - **Responsive UI** — works on desktop and mobile browsers.
