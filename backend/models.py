@@ -1,3 +1,17 @@
+"""
+SQLAlchemy models - one class per database table.
+
+Each model has a `to_dict()` method that converts it into a plain dict of
+JSON-serialisable values. Every blueprint uses this instead of hand-building
+response dictionaries, so the JSON shape returned by the API for e.g. an
+Expense is defined in exactly one place.
+
+Tables are created from these classes via `db.create_all()` (see app.py /
+the README) rather than hand-written SQL migrations - fine for a student
+project, but a production app would normally use Flask-Migrate/Alembic so
+schema changes are versioned instead of just "whatever the models currently
+say".
+"""
 from datetime import datetime
 from extensions import db
 
@@ -8,19 +22,26 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)  # bcrypt hash - see blueprints/auth.py
 
-    # Bin schedule tracker settings
+    # Bin schedule tracker settings (Requirement 3). Nullable because using
+    # the bin tracker is optional - a user might only use the expense tracker.
     eircode = db.Column(db.String(10), nullable=True)
     bin_provider_id = db.Column(db.Integer, db.ForeignKey("bin_providers.id"), nullable=True)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # cascade="all, delete-orphan": deleting a User also deletes all of their
+    # expenses/budgets/savings goals, so no orphaned rows are left behind
+    # pointing at a user_id that no longer exists.
     expenses = db.relationship("Expense", backref="user", lazy=True, cascade="all, delete-orphan")
     budgets = db.relationship("Budget", backref="user", lazy=True, cascade="all, delete-orphan")
     savings_goals = db.relationship("SavingsGoal", backref="user", lazy=True, cascade="all, delete-orphan")
 
     def to_dict(self):
+        # Deliberately excludes password_hash - this is what gets sent to
+        # the frontend and cached in localStorage, so no password data
+        # (hashed or otherwise) should ever appear in it.
         return {
             "id": self.id,
             "name": self.name,
@@ -31,6 +52,8 @@ class User(db.Model):
 
 
 class Category(db.Model):
+    """A fixed set of expense categories (Groceries, Rent, ...) shared by all users - see seed_data.py."""
+
     __tablename__ = "categories"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -46,7 +69,7 @@ class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey("categories.id"), nullable=False)
-    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    amount = db.Column(db.Numeric(10, 2), nullable=False)  # Numeric, not Float - avoids binary floating-point rounding errors on money
     description = db.Column(db.String(255), nullable=True)
     date = db.Column(db.Date, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -58,14 +81,18 @@ class Expense(db.Model):
             "id": self.id,
             "category_id": self.category_id,
             "category_name": self.category.name if self.category else None,
-            "amount": float(self.amount),
+            "amount": float(self.amount),  # Decimal isn't JSON-serialisable directly, so convert for the API response
             "description": self.description,
             "date": self.date.isoformat(),
         }
 
 
 class Budget(db.Model):
+    """A user's monthly spending limit for one category (Requirement 2)."""
+
     __tablename__ = "budgets"
+    # One budget per user per category - POST /api/budgets relies on this to
+    # decide whether to insert a new row or update the existing one.
     __table_args__ = (db.UniqueConstraint("user_id", "category_id", name="uq_user_category_budget"),)
 
     id = db.Column(db.Integer, primary_key=True)
@@ -76,6 +103,10 @@ class Budget(db.Model):
     category = db.relationship("Category")
 
     def to_dict(self):
+        # Note: this does NOT include `spent`/`remaining`/`over_budget` -
+        # those are calculated on the fly in blueprints/budgets.py by
+        # summing that category's expenses for the current month, since
+        # "amount spent so far" isn't a stored value, it's a live total.
         return {
             "id": self.id,
             "category_id": self.category_id,
@@ -85,6 +116,8 @@ class Budget(db.Model):
 
 
 class SavingsGoal(db.Model):
+    """A named target a user is saving towards (Requirement 2), e.g. 'Summer trip'."""
+
     __tablename__ = "savings_goals"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -101,6 +134,9 @@ class SavingsGoal(db.Model):
             "target_amount": float(self.target_amount),
             "current_amount": float(self.current_amount),
             "target_date": self.target_date.isoformat() if self.target_date else None,
+            # Guard against divide-by-zero: target_amount must be > 0 at
+            # creation time (see blueprints/savings.py), but this keeps
+            # to_dict() safe even if that ever changes.
             "progress_pct": round(
                 (float(self.current_amount) / float(self.target_amount)) * 100, 1
             ) if float(self.target_amount) > 0 else 0,
@@ -108,6 +144,8 @@ class SavingsGoal(db.Model):
 
 
 class BinProvider(db.Model):
+    """A household waste collection company, e.g. Panda, Greyhound, Thorntons."""
+
     __tablename__ = "bin_providers"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -135,6 +173,8 @@ class BinSchedule(db.Model):
 
     provider = db.relationship("BinProvider")
 
+    # Used by the frontend to colour-code each bin type consistently across
+    # every page (dashboard, bins page) without hardcoding colours in the JS.
     BIN_COLOURS = {
         "general": "#4a4a4a",
         "recycling": "#2e7d32",
@@ -154,6 +194,12 @@ class BinSchedule(db.Model):
 
 
 class Reminder(db.Model):
+    """
+    A record that a bin-collection reminder email has already been sent, so
+    the daily job in reminders.py never emails the same user about the same
+    collection twice (e.g. if it's run more than once on the same day).
+    """
+
     __tablename__ = "reminders"
 
     id = db.Column(db.Integer, primary_key=True)
