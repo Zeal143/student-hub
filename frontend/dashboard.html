@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/dist/tabler-icons.min.css" rel="stylesheet">
+  <link href="js/vendor/tabler-icons/tabler-icons.min.css" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
@@ -19,201 +19,47 @@
     <div class="hero-banner">
       <div class="hero-eyebrow">Dashboard</div>
       <h1 id="welcomeHeading">Welcome back</h1>
-      <div class="hero-stats" id="heroStats"></div>
     </div>
 
     <div class="row g-3">
-      <div class="col-lg-8">
-        <div class="row g-3">
-          <div class="col-12">
-            <div class="hub-card">
-              <div class="card-head">
-                <span class="card-icon"><i class="ti ti-chart-pie"></i></span>
-                <div>
-                  <div class="eyebrow">This month</div>
-                  <h2>Recent spending</h2>
-                </div>
-              </div>
-              <div class="row align-items-center">
-                <div class="col-md-7">
-                  <div class="chart-box">
-                    <canvas id="categoryChart"></canvas>
-                  </div>
-                </div>
-                <div class="col-md-5">
-                  <div id="categoryLegend" class="small"></div>
-                  <a href="expenses.html" class="btn btn-hub-outline btn-sm mt-3 w-100">
-                    Go to expense tracker <i class="ti ti-arrow-right" style="font-size:14px; vertical-align:-2px;"></i>
-                  </a>
-                </div>
-              </div>
+      <div class="col-md-6">
+        <a href="expenses.html" class="hub-card d-block h-100 text-decoration-none">
+          <div class="card-head">
+            <span class="card-icon"><i class="ti ti-report-money"></i></span>
+            <div>
+              <div class="eyebrow">Money</div>
+              <h2>Expense tracker</h2>
             </div>
           </div>
-
-          <div class="col-12">
-            <div class="hub-card">
-              <div class="card-head">
-                <span class="card-icon"><i class="ti ti-report-money"></i></span>
-                <div>
-                  <div class="eyebrow">Stay on track</div>
-                  <h2>Budget status</h2>
-                </div>
-              </div>
-              <div id="budgetList"></div>
-            </div>
-          </div>
-        </div>
+          <p class="muted mb-0">Log spending, set category budgets, and track savings goals.</p>
+        </a>
       </div>
 
-      <div class="col-lg-4">
-        <div class="row g-3">
-          <div class="col-12">
-            <div class="hub-card">
-              <div class="card-head">
-                <span class="card-icon"><i class="ti ti-recycle"></i></span>
-                <div>
-                  <div class="eyebrow">Don't miss bin day</div>
-                  <h2>Upcoming collections</h2>
-                </div>
-              </div>
-              <div id="binList"></div>
-              <a href="bins.html" class="btn btn-hub-outline btn-sm mt-2 w-100">
-                Manage bin schedule <i class="ti ti-arrow-right" style="font-size:14px; vertical-align:-2px;"></i>
-              </a>
+      <div class="col-md-6">
+        <a href="bins.html" class="hub-card d-block h-100 text-decoration-none">
+          <div class="card-head">
+            <span class="card-icon"><i class="ti ti-recycle"></i></span>
+            <div>
+              <div class="eyebrow">Bins</div>
+              <h2>Bin schedule</h2>
             </div>
           </div>
-
-          <div class="col-12">
-            <div class="hub-card">
-              <div class="card-head">
-                <span class="card-icon"><i class="ti ti-target-arrow"></i></span>
-                <div>
-                  <div class="eyebrow">Keep going</div>
-                  <h2>Savings goals</h2>
-                </div>
-              </div>
-              <div id="goalBox"></div>
-            </div>
-          </div>
-        </div>
+          <p class="muted mb-0">See your upcoming collections, colour-coded by bin type.</p>
+        </a>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
   <script src="js/app.js"></script>
   <script>
     Hub.requireAuth();
     Hub.renderNavbar("dashboard");
 
-    const CATEGORY_COLORS = {
-      Groceries: "#4F8F73", Rent: "#1F4D3A", Transport: "#2E6BA8",
-      Entertainment: "#DE5B36", Utilities: "#B97A1E", Other: "#9B968A"
-    };
-
-    async function init() {
-      let data;
-      try {
-        data = await Hub.getDashboard();
-      } catch (err) {
-        alert(err.message);
-        return;
-      }
-      if (!data) return; 
-
-      const user = data.user;
+    const user = Hub.currentUser();
+    if (user) {
       document.getElementById("welcomeHeading").textContent = `Welcome back, ${user.name.split(" ")[0]}`;
-
-      /* ---- quick stats ---- */
-      const nextBin = data.upcoming_bin_collections[0];
-      const goal = data.savings_goals[0];
-      const heroStats = [
-        { label: "Spent this month", value: `\u20AC${data.total_spent_this_month.toFixed(2)}` },
-        { label: "Next bin collection", value: nextBin ? `${nextBin.bin_type} - ${Hub.formatDate(nextBin.collection_date)}` : "Not set up" },
-        { label: "Savings goal", value: goal ? `${goal.progress_pct}% of \u20AC${goal.target_amount.toFixed(0)}` : "Not set" }
-      ];
-      document.getElementById("heroStats").innerHTML = heroStats.map(s => `
-        <div class="hero-stat">
-          <div class="hero-stat-label">${s.label}</div>
-          <div class="hero-stat-value">${s.value}</div>
-        </div>`).join("");
-
-      /* ---- Spending by category ---- */
-      let summary = [];
-      try {
-        summary = await Hub.spendingByCategory();
-      } catch (err) { /* non-fatal, just show empty chart */ }
-
-      const labels = summary.map(s => s.category);
-      const chartData = summary.map(s => s.total);
-
-      if (labels.length === 0) {
-        document.getElementById("categoryChart").replaceWith(
-          Object.assign(document.createElement("div"), { className: "empty-hint", textContent: "No expenses yet - add one on the Expenses page." })
-        );
-      } else {
-        new Chart(document.getElementById("categoryChart"), {
-          type: "doughnut",
-          data: {
-            labels,
-            datasets: [{ data: chartData, backgroundColor: labels.map(l => CATEGORY_COLORS[l] || "#999"), borderWidth: 0 }]
-          },
-          options: { plugins: { legend: { display: false } }, cutout: "65%" }
-        });
-      }
-
-      const legend = document.getElementById("categoryLegend");
-      legend.innerHTML = summary.map(s => `
-        <div class="d-flex justify-content-between align-items-center mb-1">
-          <span><span class="d-inline-block rounded-circle me-2" style="width:10px;height:10px;background:${CATEGORY_COLORS[s.category] || "#999"}"></span>${s.category}</span>
-          <span class="muted">&euro;${s.total.toFixed(2)}</span>
-        </div>`).join("") || '<p class="muted mb-0">Nothing recorded yet.</p>';
-
-      /* ---- Budget progress ---- */
-      const budgetList = document.getElementById("budgetList");
-      budgetList.innerHTML = data.budgets.length ? data.budgets.map(b => {
-        const pct = b.monthly_limit > 0 ? Math.min(100, Math.round((b.spent / b.monthly_limit) * 100)) : 0;
-        return `
-        <div class="mb-3">
-          <div class="d-flex justify-content-between small mb-1">
-            <span>${b.category_name}</span>
-            <span class="muted">&euro;${b.spent.toFixed(2)} / &euro;${b.monthly_limit.toFixed(2)}</span>
-          </div>
-          <div class="hub-progress"><div class="${Hub.budgetStatus(pct)}" style="width:${pct}%"></div></div>
-        </div>`;
-      }).join("") : '<p class="muted mb-0">No budgets set yet. <a href="expenses.html">Set one up</a>.</p>';
-
-      /* ---- Bin collections ---- */
-      const binList = document.getElementById("binList");
-      if (!data.has_bin_settings) {
-        binList.innerHTML = `<div class="empty-hint mb-2">Set up your Eircode and provider to see your collection schedule.</div>`;
-      } else if (data.upcoming_bin_collections.length === 0) {
-        binList.innerHTML = `<div class="empty-hint mb-2">No collections found yet.</div>`;
-      } else {
-        binList.innerHTML = data.upcoming_bin_collections.map(c => {
-          const meta = Hub.BIN_LABELS[c.bin_type];
-          return `<div class="bin-row ${meta.cls}">
-            <span class="bin-icon-badge"><i class="ti ${meta.icon}"></i></span>
-            <span class="bin-row-label">${meta.label}</span>
-            <span class="bin-row-date">${Hub.formatDate(c.collection_date)}</span>
-          </div>`;
-        }).join("");
-      }
-
-      /* ---- Savings goals ---- */
-      const goalBox = document.getElementById("goalBox");
-      goalBox.innerHTML = data.savings_goals.length ? data.savings_goals.map(g => `
-        <div class="mb-3">
-          <div class="d-flex justify-content-between small mb-1">
-            <span>${g.name}</span>
-            <span class="muted">&euro;${g.current_amount.toFixed(2)} / &euro;${g.target_amount.toFixed(2)}</span>
-          </div>
-          <div class="hub-progress"><div class="progress-ok" style="width:${g.progress_pct}%"></div></div>
-        </div>`).join("") : '<div class="empty-hint">No savings goals yet. <a href="expenses.html">Add one</a>.</div>';
     }
-
-    init();
   </script>
 </body>
 </html>

@@ -1,5 +1,7 @@
+
+
 const Hub = {
-  API_BASE: "http://localhost:5000/api",
+  API_BASE: "/api",
 
   KEYS: {
     token: "hub_token",
@@ -92,6 +94,7 @@ const Hub = {
   },
 
   async spendingByCategory() {
+    // [{category, total}] for the current calendar month, computed server-side.
     return this.apiFetch("/expenses/summary");
   },
 
@@ -176,6 +179,7 @@ const Hub = {
 
   async getSchedule() {
     // Returns [{bin_type, colour, collection_date, provider_name, ...}, ...]
+    // already sorted by date, or throws if no Eircode/provider set yet.
     return this.apiFetch("/bins/schedule");
   },
 
@@ -190,11 +194,6 @@ const Hub = {
     return date.toLocaleDateString("en-IE", { weekday: "short", day: "numeric", month: "short" });
   },
 
-  /* ---------------- dashboard (combined) ---------------- */
-  async getDashboard() {
-    return this.apiFetch("/dashboard");
-  },
-
   /* ---------------- navbar ---------------- */
   renderNavbar(active) {
     const user = this.currentUser();
@@ -202,8 +201,7 @@ const Hub = {
     const links = [
       { href: "dashboard.html", label: "Dashboard", key: "dashboard" },
       { href: "expenses.html", label: "Expenses", key: "expenses" },
-      { href: "bins.html", label: "Bins", key: "bins" },
-      { href: "account.html", label: "Account", key: "account" }
+      { href: "bins.html", label: "Bins", key: "bins" }
     ];
     const linkHtml = links.map(l =>
       `<a class="nav-link ${l.key === active ? "active" : ""}" href="${l.href}">${l.label}</a>`
