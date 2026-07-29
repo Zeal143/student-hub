@@ -159,13 +159,3 @@ class BinSchedule(db.Model):
             "frequency_weeks": self.frequency_weeks,
         }
 
-#Reminder Model
-class Reminder(db.Model):
-
-    __tablename__ = "reminders"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    bin_schedule_id = db.Column(db.Integer, db.ForeignKey("bin_schedules.id"), nullable=False)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
-    collection_date = db.Column(db.Date, nullable=False)

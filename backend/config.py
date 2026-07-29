@@ -31,9 +31,3 @@ class Config:
         hours=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_HOURS", "12"))
     )
 
-    # Outgoing email for bin collection reminders (see in reminders.py)
-    SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-    SMTP_USERNAME = os.getenv("SMTP_USERNAME", "")
-    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-    SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Irish International Student Hub")
