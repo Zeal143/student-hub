@@ -1,8 +1,8 @@
 # Irish International Student Hub
  
 A website that helps international students living in Ireland manage challenges of student life in one place: 
--**tracking personal expenses** and 
--**keeping up with household bin collection schedules**.
+- **tracking personal expenses** and 
+- **keeping up with householdbin collection schedules**.
  
 Students can record and visualise their spending, set monthly budgets and savings goals, and using their Eircode and chosen waste-collection provider and see their upcoming bin collection dates.
 
